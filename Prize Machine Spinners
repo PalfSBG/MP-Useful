@@ -1,0 +1,45 @@
+---------------------------------------------------
+---Prize Machine Spinners
+
+--Purpose: 
+--Code to get users who have played prize machine with a flag for mega and a flag for win or lose .
+---------------------------------
+--Created By: Mark Palfreeman
+--Creation Date: 23/12/22
+---------------------------------
+
+---------------------------------------------------
+
+SELECT
+    apm.cust_id,
+    to_date(apm.spin_dt) AS dt,
+    apm.spin_dt,
+    apm.mega_ind AS mega_flag,
+    CASE
+        WHEN promo.promo_marketing_code IS NULL
+        THEN 0
+        ELSE 1
+    END AS pm_win,
+    CASE
+        WHEN promo.promo_marketing_code IS NULL
+        THEN 1
+        ELSE 0
+    END                        AS pm_lose,
+    promo.promo_marketing_code AS rewarded_promo_marketing_code,
+    promo_type.promo_type_nm
+FROM
+    sbgi_promotions.promo_apm_detail_fact_view apm
+    /* join the spin to the promo rewarded */
+LEFT OUTER JOIN
+    sbgi_promotions.promotion_dim_view promo
+ON
+    apm.rewarded_promo_id = promo.promo_id
+AND apm.spin_dt >= promo.valid_from
+AND apm.spin_dt <= promo.valid_to
+LEFT OUTER JOIN
+    sbgi_promotions.promo_type_dim_view promo_type
+ON
+    promo.promo_type_id = promo_type.promo_type_id
+WHERE
+    apm.spin_dt >= date_sub(date_trunc('day', now()), 366) AND date_sub(date_trunc('day', now()), 1)
+AND apm.spin_dt IS NOT NULL
