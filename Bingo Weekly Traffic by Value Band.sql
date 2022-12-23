@@ -1,0 +1,42 @@
+---------------------------------------------------
+---Bingo Weekly Traffic by Value Band
+
+--Purpose: 
+--Code to pull out bingo visits and logged-in users by value band for the current and previous year.
+---------------------------------
+--Created By: Mark Palfreeman
+--Creation Date: 23/12/22
+---------------------------------
+
+---------------------------------------------------
+
+WITH base as (
+Select a.cust_id, a.dt, cal.business_year, cal.business_week, cal.week_start_date, nvl(cast(a.value as int), 0) as visits, 
+case 
+when b.value = '5000-10000' then '2K-10K'
+when b.value = '250-500' then '250-2K'
+when b.value = '1000-2000' then '250-2K'
+when b.value = '2000-5000' then '2K-10K'
+when b.value = 'over 10000' then '10K+'
+else b.value
+end AS bng_vb
+from sbg_summaries.onsite_data_summary_history a
+left join sbg_reference.calendar cal
+on a.dt = cal.caldate
+left join sbg_models.customer_dna_history b
+on b.dt = a.dt
+and b.cust_id = a.cust_id
+where a.feature = 'bng_visits'
+and b.feature = 'current_value.bng.bands'
+and cast(a.value as int) > 0
+and (a.year = year(now()) OR a.year = year(now())-1) 
+)
+
+Select  week_start_date, bng_vb, count(distinct cust_id) as users,
+        sum(count(distinct cust_id)) over (partition by week_start_date) as weekly_total_users, 
+        round((count(distinct cust_id) / sum(count(distinct cust_id)) over (partition by week_start_date) * 100), 2) as perc_of_total_users,
+        sum(visits) as visits,
+        sum(sum(visits)) over (partition by week_start_date) as weekly_total_visits, 
+        round((sum(visits) / sum(sum(visits)) over (partition by week_start_date) * 100), 2) as perc_of_total_visits
+from base
+group by bng_vb, week_start_date
