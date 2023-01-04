@@ -1,0 +1,36 @@
+--DROP TABLE IF EXISTS gaminginsight.palfreemanm_visitorid_lookup;
+--CREATE TABLE gaminginsight.palfreemanm_visitorid_lookup STORED AS PARQUET as
+
+--INSERT INTO gaminginsight.palfreemanm_visitorid_lookup
+
+WITH base AS (
+Select cust_id, visitorid, visitid, event_date_time_gmt, to_date(event_date_time_gmt) as dt,
+case
+when concat(',',event_type,',') LIKE '%,20135,%' then 'sportsbook'
+when concat(',',event_type,',') LIKE '%,20136,%' then 'vegas'
+when concat(',',event_type,',') LIKE '%,20137,%' then 'casino'
+when concat(',',event_type,',') LIKE '%,20138,%' then 'bingo'
+end as product
+from sbgi_business_events.adobe_events a
+where concat(',',event_type,',') LIKE '%,20135,%'
+and cust_id is not null
+and year(dt) = 2018
+),
+
+shrink as (
+Select DISTINCT cust_id, visitorid, product
+from base
+),
+
+list_check as (
+Select s.cust_id, s.visitorid, s.product
+from shrink s
+left join gaminginsight.palfreemanm_visitorid_lookup l
+on s.visitorid = l.visitorid
+and s.product = l.product
+where l.visitorid IS NULL
+)
+
+Select * 
+from list_check
+limit 100
