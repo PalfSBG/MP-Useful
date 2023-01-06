@@ -1,0 +1,29 @@
+WITH base AS (
+Select to_date(event_date_time_gmt) as dt, cust_id, click_event, event_date_time_gmt
+from sbgi_business_events.adobe_events a
+WHERE concat(',',event_type,',') LIKE '%,20135,%' --Sky Vegas
+and click_event IN (
+'[Tabs] - Skyvegas', --Vegas (web)
+'[Tabs] Skyvegas', --Vegas (app)
+'[Tabs] - Bingo', --Bingo (web)
+'[Tabs] - Casino', --Casino (web)
+'[Tabs] - Live Casino', --Live Casino (web)
+'[Tabs] - Poker', --Poker (web)
+'[Tabs] - Skyvegaslive', --Vegas Live (web)
+'[Tabs] - Super 6', --Super 6 (web)
+'[Tabs] Bingo', --Bingo (app)
+'[Tabs] Casino', --Casino (app)
+'[Tabs] Fantasy Football', --Fantasy Football (app)
+'[Tabs] ITV7', --ITV7 (app)
+'[Tabs] LiveCasino', --Live Casino (app)
+'[Tabs] Pick7', --??? (app)
+'[Tabs] Poker', --Poker (app)
+'[Tabs] Skyvegaslive', --Vegas Live (app)
+'[Tabs] Sporting Life', --Sporting Life (app)
+'[Tabs] Super 6' --Super 6 (app)
+)
+and dt >= '2022-01-01'
+)
+
+Select * 
+from base
