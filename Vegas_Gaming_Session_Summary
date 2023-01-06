@@ -1,0 +1,155 @@
+--------------------------------------------
+---GET TRANSACTIONAL DATA FROM ENRICHED DETAIL
+---------------------------------------------
+WITH leads_added as
+(
+select  cust_id,
+        dt,
+        started,
+        display_name,
+        cash_stakes_gbp as cash_stakes,
+        cash_winnings_gbp as cash_winnings,
+        rtp,
+        --assumed margin = stakes*1 - rtp of game/game type
+        cash_stakes_gbp * (1 - rtp) as assumed_margin,
+        cash_stakes_gbp - cash_winnings_gbp as gross_margin,
+        lag(started, 1) over(partition by cust_id order by started) prev_started,
+        lead(started, 1) over(partition by cust_id order by started) next_started,
+        lag(display_name, 1) over(partition by cust_id order by started) prev_game
+from    sbgi_vegas.enriched_game_detail vgs
+left join sbgi_reference.vegas_game_lookup lu
+on      vgs.game_name = lu.event_type
+where   dt between date_sub(date_trunc('day', now()), 1) and date_sub(date_trunc('day', now()), 1)
+and     to_date(started) >= date_sub(date_trunc('day', now()), 1)
+),
+
+--Adds a flag with a session_ID
+flags_added as
+(
+select  cust_id,
+        dt,
+        started,
+        display_name,
+        cash_stakes,
+        cash_winnings,
+        assumed_margin,
+        gross_margin,
+        prev_game,
+        prev_started,
+        next_started,
+        case when prev_started is null or ((unix_timestamp(started) - unix_timestamp(prev_started)) / 60) > 30
+        then 1
+        else 0
+        end new_sess_flag,
+        case when prev_game is null or prev_game != display_name
+        then 1
+        else 0
+        end new_game_flag,    
+        case when prev_started is null or ((unix_timestamp(started) - unix_timestamp(prev_started)) / 60) > 30
+             then concat('SESS ', cast(started as string))
+        end new_sess_id,
+        case when prev_game is null or prev_game != display_name
+             then concat('SESS ', cast(started as string), ' ', display_name)
+        end new_game_id
+from    leads_added
+),
+-- Apply session id across all spins within session
+gaps_filled as
+(
+select  cust_id,
+        dt,
+        started,
+        display_name,
+        cash_stakes,
+        cash_winnings,
+        assumed_margin,
+        gross_margin,
+        prev_started,
+        next_started,
+        new_sess_flag,
+        new_sess_id,
+        new_game_flag,
+        new_game_id,
+        max(new_sess_id) over(partition by cust_id order by started desc, prev_started desc rows between current row and unbounded following) session_id,
+        max(new_game_id) over(partition by cust_id order by started desc, prev_started desc rows between current row and unbounded following) game_id
+from    flags_added
+),
+-- Add other information about each session e.g. margin, bets
+session_ends as
+(
+select  cust_id,
+        dt,
+        started,
+        display_name,
+        cash_stakes,
+        cash_winnings,
+        prev_started,
+        next_started,
+        new_sess_flag,
+        session_id,
+        game_id,
+        min(started) over(partition by cust_id, game_id) session_start,
+        max(started) over(partition by cust_id, game_id) session_end,
+        count(dt) over(partition by cust_id, game_id) bets_per_sess,
+        sum(cash_stakes) over(partition by cust_id, game_id) cash_stakes_per_sess,
+        sum(gross_margin) over(partition by cust_id, game_id) gross_margin_per_sess,
+        sum(assumed_margin) over(partition by cust_id, game_id) assumed_margin_per_sess
+from    gaps_filled
+),
+-- Add session length
+session_length as
+(
+select  cust_id,
+        dt,
+        started,
+        cash_stakes,
+        cash_winnings,
+        prev_started,
+        next_started,
+        new_sess_flag,
+        session_id,
+        game_id,
+        session_start,
+        session_end,
+        bets_per_sess,
+        cash_stakes_per_sess,
+        gross_margin_per_sess,
+        assumed_margin_per_sess,
+        round((unix_timestamp(session_end) - unix_timestamp(session_start)) / 60) session_length_mins
+from    session_ends
+),
+-- Summarise each session
+session_sum as
+(
+select  cust_id,
+        game_id,
+        min(dt) dt,
+        min(session_start) as session_start,
+        min(session_end) as session_end,
+        avg(session_length_mins) as session_length_mins,
+        avg(bets_per_sess) as bets_per_sess,
+        avg(cash_stakes_per_sess) as cash_stakes_per_sess,
+        avg(gross_margin_per_sess) as gross_margin_per_sess,
+        avg(assumed_margin_per_sess) as assumed_margin_per_sess
+from    session_length ss
+group by cust_id,
+        game_id
+),
+-- session final table
+session_final_table as
+(
+select  cust_id,
+        dt,
+        game_id,
+        session_start,
+        session_end,
+        session_length_mins,
+        bets_per_sess,
+        cash_stakes_per_sess,
+        gross_margin_per_sess,
+        assumed_margin_per_sess
+from    session_sum
+)
+
+Select * 
+from session_final_table
