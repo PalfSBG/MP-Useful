@@ -1,3 +1,8 @@
+--DROP TABLE IF EXISTS gaminginsight.palfreemanm_bet_masthead_clicks;
+--CREATE TABLE gaminginsight.palfreemanm_bet_masthead_clicks STORED AS PARQUET as
+
+--INSERT INTO gaminginsight.palfreemanm_bet_masthead_clicks
+
 WITH base AS (
 Select to_date(event_date_time_gmt) as dt, cust_id, click_event, event_date_time_gmt
 from sbgi_business_events.adobe_events a
