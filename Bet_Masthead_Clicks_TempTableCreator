@@ -1,10 +1,14 @@
---DROP TABLE IF EXISTS gaminginsight.palfreemanm_bet_masthead_clicks;
---CREATE TABLE gaminginsight.palfreemanm_bet_masthead_clicks STORED AS PARQUET as
+DROP TABLE IF EXISTS gaminginsight.palfreemanm_bet_masthead_clicks;
+CREATE TABLE gaminginsight.palfreemanm_bet_masthead_clicks
+PARTITIONED BY (dt, yr)
+STORED AS PARQUET 
 
---INSERT INTO gaminginsight.palfreemanm_bet_masthead_clicks
+AS
+
+--INSERT INTO gaminginsight.palfreemanm_bet_masthead_clicks PARTITION (dt)
 
 WITH base AS (
-Select to_date(event_date_time_gmt) as dt, cust_id, click_event, event_date_time_gmt
+Select cust_id, click_event, event_date_time_gmt, to_date(event_date_time_gmt) as dt, year(to_date(event_date_time_gmt)) as yr
 from sbgi_business_events.adobe_events a
 WHERE concat(',',event_type,',') LIKE '%,20135,%' --Sky Vegas
 and click_event IN (
