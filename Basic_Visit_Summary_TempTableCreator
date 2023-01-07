@@ -1,10 +1,14 @@
 --DROP TABLE IF EXISTS gaminginsight.palfreemanm_visit_summary_basic;
---CREATE TABLE gaminginsight.palfreemanm_visit_summary_basic STORED AS PARQUET as
+--CREATE TABLE gaminginsight.palfreemanm_visit_summary_basic
+--PARTITIONED BY (dt, yr)
+--STORED AS PARQUET 
 
---INSERT INTO gaminginsight.palfreemanm_visit_summary_basic
+--AS
+
+--INSERT INTO gaminginsight.palfreemanm_visit_summary_basic PARTITION (dt, yr)
 
 WITH base AS (
-Select to_date(event_date_time_gmt) as dt, cust_id, visitid, event_date_time_gmt, 
+Select to_date(event_date_time_gmt) as dt, year(to_date(event_date_time_gmt)) as yr, cust_id, visitid, event_date_time_gmt, 
 replace(visitid, visitorid, '') as visit_num,
 case 
 when concat(',',event_type,',') LIKE '%,20136,%' then 'vegas'
@@ -13,10 +17,10 @@ when concat(',',event_type,',') LIKE '%,20138,%' then 'bingo'
 end as product
 --row_number() over (partition by visitid order by event_date_time_gmt) as hit_number
 from sbgi_business_events.adobe_events a
-WHERE concat(',',event_type,',') LIKE '%,20135,%' --Sky Vegas
-and year(event_date_time_gmt) >= 2022
+WHERE concat(',',event_type,',') LIKE '%,20137,%' --Sky Vegas
+--and year(event_date_time_gmt) >= 2022
 )
 
-Select dt, cust_id, visitid, visit_num, min(event_date_time_gmt) as visit_start, max(event_date_time_gmt) as visit_end, product  
+Select cust_id, visitid, visit_num, min(event_date_time_gmt) as visit_start, max(event_date_time_gmt) as visit_end, product, dt, yr  
 from base
-group by dt, cust_id, visitid, visit_num, product
+group by cust_id, visitid, visit_num, product, dt, yr
