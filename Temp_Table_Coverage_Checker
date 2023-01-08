@@ -1,0 +1,23 @@
+--Temp Table Coverage Checker
+
+--Vegas Session Summary
+WITH vegas_session_summary as (
+Select 'vegas_session_summary' as data_set, min(dt) as first_date, max(dt) as last_date
+from gaminginsight.palfreemanm_vegas_session_summary
+),
+
+basic_visit_summary as (
+Select 'basic_visit_summary' as data_set, min(dt) as first_date, max(dt) as last_date
+from gaminginsight.palfreemanm_visit_summary_basic
+),
+
+bet_masthead_clicks as (
+Select 'bet_masthead_clicks' as data_set, min(dt) as first_date, max(dt) as last_date
+from gaminginsight.palfreemanm_bet_masthead_clicks
+),
+
+Select * from vegas_session_summary
+UNION
+Select * from basic_visit_summary
+UNION
+Select * from bet_masthead_clicks
