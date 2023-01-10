@@ -1,0 +1,88 @@
+WITH pm_masthead_click as (
+Select to_date(event_date_time_gmt) as dt, cust_id, event_date_time_gmt, 1 as cross_sell_bar_pm_click
+from sbgi_business_events.adobe_events a
+where click_event = '[Tabs] - Prize Machine' 
+and concat(',',event_type,',') LIKE '%,20135,%' --Sky Vegas
+and dt BETWEEN '2022-10-18' AND '2022-11-01'
+and cust_id IS NOT NULL
+),
+
+masthead_click as (
+Select cust_id, 1 AS cross_sell_bar_click
+from gaminginsight.palfreemanm_bet_masthead_clicks
+where click_event LIKE '%vegas%' 
+and yr = 2022
+and dt BETWEEN '2022-07-20' AND '2022-10-17'
+and cust_id IN (Select cust_id from pm_masthead_click)
+),
+
+visited_anyway as (
+Select cust_id, 1 AS visited
+from gaminginsight.palfreemanm_visit_summary_basic
+where product = 'vegas'
+and dt BETWEEN '2022-07-20' AND '2022-10-17'
+and cust_id IN (Select cust_id from pm_masthead_click)
+),
+
+user_check as (
+Select DISTINCT pm.cust_id, cross_sell_bar_pm_click, cross_sell_bar_click, visited 
+from pm_masthead_click pm
+left join masthead_click m
+on pm.cust_id = m.cust_id
+left join visited_anyway v
+on pm.cust_id = v.cust_id
+),
+
+users as (
+Select *
+from user_check u
+where cross_sell_bar_click IS NULL
+and visited IS NULL
+),
+
+visits as (
+Select *
+from gaminginsight.palfreemanm_visit_summary_basic v
+where v.product = 'vegas'
+and yr = 2022
+and dt >= (Select min(dt) from pm_masthead_click)
+and cust_id IN (Select cust_id from users)
+),
+
+visit_match as (
+Select m.dt, m.cust_id, m.event_date_time_gmt as masthead_click_timestamp, v.visitid, v.visit_start, v.visit_end
+from pm_masthead_click m
+left join visits v
+on m.cust_id = v.cust_id
+--and b.dt = b2.dt
+and unix_timestamp(event_date_time_gmt) between unix_timestamp(visit_start) - 60 and unix_timestamp(visit_start)
+where v.visitid IS NOT NULL
+and m.cust_id IN (Select cust_id from users)
+),
+
+sessions as (
+Select *
+from gaminginsight.palfreemanm_vegas_session_summary v
+where dt >= (Select min(dt) from pm_masthead_click)
+and cust_id IN (Select cust_id from users)
+),
+summary as (
+Select v.cust_id, v.dt, v.masthead_click_timestamp, v.visitid, v.visit_start, v.visit_end, s.game_id, s.session_start, s.session_end, s.session_length_mins, s.bets_per_sess, s.cash_stakes_per_sess, s.gross_margin_per_sess, s.assumed_margin_per_sess  
+from visit_match v
+left join sessions s
+on v.cust_id = s.cust_id
+and unix_timestamp(session_start) between unix_timestamp(visit_start) and unix_timestamp(visit_end)
+),
+
+trans_summary AS (
+Select cust_id, dt, masthead_click_timestamp, visitid, visit_start, visit_end, 
+case when (count(game_id) > 0) then 1 else 0 end as gaming_session,
+count(game_id) as total_sessions, sum(session_length_mins) as total_time_playing, sum(bets_per_sess) as total_bets, sum(cash_stakes_per_sess) as total_stakes, sum(gross_margin_per_sess) as total_Gmargin, sum(assumed_margin_per_sess) as total_Amargin  
+from summary
+group by cust_id, dt, masthead_click_timestamp, visitid, visit_start, visit_end
+)
+
+Select dt, count(masthead_click_timestamp) as masthead_clicks, sum(gaming_session) as subsequent_gaming_sessions, sum(gaming_session) / count(masthead_click_timestamp) as sgs_conv, 
+round(avg(total_sessions), 1) as avg_gaming_sessions_played_per_click, round(avg(total_time_playing), 2) as avg_time_playing_mins_per_click, round(avg(total_stakes), 2) as avg_amount_staked_per_click, round(avg(total_gmargin), 2) as avg_gmargin_per_click, round(avg(total_amargin), 2) as avg_amargin_per_click 
+from trans_summary
+group by dt
