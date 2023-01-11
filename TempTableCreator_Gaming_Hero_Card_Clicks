@@ -1,0 +1,36 @@
+--DROP TABLE IF EXISTS gaminginsight.palfreemanm_hero_card_clicks;
+--CREATE TABLE gaminginsight.palfreemanm__hero_card_clicks
+--PARTITIONED BY (dt, yr)
+--STORED AS PARQUET 
+
+--AS
+
+--INSERT INTO gaminginsight.palfreemanm_visit_summary_basic PARTITION (dt, yr)
+
+WITH hero_card_clicks as (
+SELECT
+    year(to_date(event_date_time_gmt)) AS yr,
+    to_date(event_date_time_gmt) AS dt,
+    event_date_time_gmt,
+    cust_id,
+    visitorid,
+    visitid,
+    click_event,
+    split_part(click_event, '|', 1) AS element_clicked,
+    replace(split_part(click_event, '|', 2), 'Hero:', '') AS hero_card,
+    split_part(click_event, '|', 3) AS card_position,
+    substr(replace(split_part(click_event, '|', 2), 'Hero:', ''), instr(replace(split_part(click_event, '|', 2), 'Hero:', ''), '(')+1, (instr(replace(split_part(click_event, '|', 2), 'Hero:', ''), ')') - instr(replace(split_part(click_event, '|', 2), 'Hero:', ''), '(')-1)) as hero_card_type,
+    replace(replace(replace(split_part(click_event, '|', 2), '(game)', ''), '(promotion)', ''), 'Hero:', '') AS game_promo_name
+FROM
+    sbgi_business_events.adobe_events a
+WHERE
+    concat(',',event_type,',') LIKE '%,20136,%' --Sky Vegas
+AND click_event LIKE '%Hero:%' --Clicks on the Sky Vegas hero cards
+AND page_name = 'sky vegas/home' --Ensures it is only the homepage hero cards
+and to_date(event_date_time_gmt) >= '2022-01-01'
+--and to_date(event_date_time_gmt) between date_sub(date_trunc('day', now()), 31) and date_sub(date_trunc('day', now()), 1) --Look at last 30 days
+--and a.dt >= date_sub(date_trunc('day', now()), 31) --Date given is greater than 31 days ago (partition AND accounts for british summertime glitch)
+)
+
+Select cust_id, event_date_time_gmt, visitid, element_clicked, hero_card, card_position, hero_card_type, game_promo_name, dt, yr  
+from hero_card_clicks
