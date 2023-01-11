@@ -1,11 +1,11 @@
---DROP TABLE IF EXISTS gaminginsight.palfreemanm_hero_card_clicks;
---CREATE TABLE gaminginsight.palfreemanm__hero_card_clicks
+--DROP TABLE IF EXISTS gaminginsight.palfreemanm_gaming_hero_card_clicks;
+--CREATE TABLE gaminginsight.palfreemanm_gaming_hero_card_clicks
 --PARTITIONED BY (dt, yr)
 --STORED AS PARQUET 
 
 --AS
 
---INSERT INTO gaminginsight.palfreemanm_visit_summary_basic PARTITION (dt, yr)
+--INSERT INTO gaminginsight.palfreemanm_gaming_hero_card_clicks PARTITION (dt, yr)
 
 WITH hero_card_clicks as (
 SELECT
@@ -20,17 +20,19 @@ SELECT
     replace(split_part(click_event, '|', 2), 'Hero:', '') AS hero_card,
     split_part(click_event, '|', 3) AS card_position,
     substr(replace(split_part(click_event, '|', 2), 'Hero:', ''), instr(replace(split_part(click_event, '|', 2), 'Hero:', ''), '(')+1, (instr(replace(split_part(click_event, '|', 2), 'Hero:', ''), ')') - instr(replace(split_part(click_event, '|', 2), 'Hero:', ''), '(')-1)) as hero_card_type,
-    replace(replace(replace(split_part(click_event, '|', 2), '(game)', ''), '(promotion)', ''), 'Hero:', '') AS game_promo_name
+    replace(replace(replace(split_part(click_event, '|', 2), '(game)', ''), '(promotion)', ''), 'Hero:', '') AS game_promo_name,
+    case 
+    when concat(',',event_type,',') LIKE '%,20136,%' then 'vegas'
+    when concat(',',event_type,',') LIKE '%,20137,%' then 'casino'
+    when concat(',',event_type,',') LIKE '%,20138,%' then 'bingo'
+    end as product
 FROM
     sbgi_business_events.adobe_events a
-WHERE
-    concat(',',event_type,',') LIKE '%,20136,%' --Sky Vegas
-AND click_event LIKE '%Hero:%' --Clicks on the Sky Vegas hero cards
-AND page_name = 'sky vegas/home' --Ensures it is only the homepage hero cards
+WHERE (concat(',',event_type,',') LIKE '%,20136,%' OR concat(',',event_type,',') LIKE '%,20137,%' OR concat(',',event_type,',') LIKE '%,20138,%') --Limit to Vegas, Casino, Bingo
+AND click_event LIKE '%Hero:%' --Clicks on the hero cards
+AND page_name IN ('sky vegas/home', 'sky casino/home', 'sky bingo/home') --Ensures it is only the homepage hero cards
 and to_date(event_date_time_gmt) >= '2022-01-01'
---and to_date(event_date_time_gmt) between date_sub(date_trunc('day', now()), 31) and date_sub(date_trunc('day', now()), 1) --Look at last 30 days
---and a.dt >= date_sub(date_trunc('day', now()), 31) --Date given is greater than 31 days ago (partition AND accounts for british summertime glitch)
 )
 
-Select cust_id, event_date_time_gmt, visitid, element_clicked, hero_card, card_position, hero_card_type, game_promo_name, dt, yr  
+Select cust_id, event_date_time_gmt, visitid, click_event, element_clicked, hero_card, card_position, hero_card_type, game_promo_name, product, dt, yr  
 from hero_card_clicks
