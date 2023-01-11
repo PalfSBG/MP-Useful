@@ -1,0 +1,50 @@
+WITH base as (
+SELECT
+    a.dt,
+    a.cust_id,
+    NVL(CAST(a.value AS INT), 0) AS visits,
+    b.value                      AS vgs_vb,
+    case when b.value = 'Negative Value' then 1 else 0 end as Neg_Value_users,
+    case when b.value = '0-50' then 1 else 0 end as 0_50_users,
+    case when b.value = '50-250' then 1 else 0 end as 50_250_users,
+    case when b.value = '250-500' then 1 else 0 end as 250_500_users,
+    case when b.value = '500-1000' then 1 else 0 end as 500_1000_users,
+    case when b.value = '1000-2000' then 1 else 0 end as 1000_2000_users,
+    case when b.value = '2000-5000' then 1 else 0 end as 2000_5000_users,
+    case when b.value = '5000-10000' then 1 else 0 end as 5000_10000_users,
+    case when b.value = 'Negative Value' then NVL(CAST(a.value AS INT), 0) else 0 end as Neg_Value,
+    case when b.value = '0-50' then NVL(CAST(a.value AS INT), 0) else 0 end as 0_50,
+    case when b.value = '50-250' then NVL(CAST(a.value AS INT), 0) else 0 end as 50_250,
+    case when b.value = '250-500' then NVL(CAST(a.value AS INT), 0) else 0 end as 250_500,
+    case when b.value = '500-1000' then NVL(CAST(a.value AS INT), 0) else 0 end as 500_1000,
+    case when b.value = '1000-2000' then NVL(CAST(a.value AS INT), 0) else 0 end as 1000_2000,
+    case when b.value = '2000-5000' then NVL(CAST(a.value AS INT), 0) else 0 end as 2000_5000,
+    case when b.value = '5000-10000' then NVL(CAST(a.value AS INT), 0) else 0 end as 5000_10000
+FROM
+    sbg_summaries.onsite_data_summary_history a
+LEFT JOIN
+    sbg_models.customer_dna_history b
+ON
+    a.dt = b.dt
+AND a.cust_id = b.cust_id
+WHERE
+    b.feature = 'current_value.vgs.bands'
+AND a.feature = 'vgs_visits'
+AND a.dt BETWEEN '2022-01-01' AND '2022-12-31'
+AND CAST(a.value AS INT) > 0 
+),
+
+summary as (
+Select dt, 
+sum(neg_value_users) as neg_value_users, sum(0_50_users) as 0_50_users, sum(50_250_users) as 50_250_users, sum(250_500_users) as 250_500_users, sum(500_1000_users) as 500_1000_users, sum(1000_2000_users) as 1000_2000_users, sum(2000_5000_users) as 2000_5000_users, sum(5000_10000_users) as 5000_10000_users,
+(sum(neg_value_users)/count(cust_id)) as neg_value_users_perc, (sum(0_50_users)/count(cust_id)) as 0_50_users_perc, (sum(50_250_users)/count(cust_id)) as 50_250_users_perc, (sum(250_500_users)/count(cust_id)) as 250_500_users_perc, (sum(500_1000_users)/count(cust_id)) as 500_1000_users_perc, (sum(1000_2000_users)/count(cust_id)) as 1000_2000_users_perc, (sum(2000_5000_users)/count(cust_id)) as 2000_5000_users_perc, (sum(5000_10000_users)/count(cust_id)) as 5000_10000_users_perc,
+sum(neg_value) as neg_value, sum(0_50) as 0_50, sum(50_250) as 50_250, sum(250_500) as 250_500, sum(500_1000) as 500_1000, sum(1000_2000) as 1000_2000, sum(2000_5000) as 2000_5000, sum(5000_10000) as 5000_10000,
+(sum(neg_value)/sum(visits)) as neg_value_visits_perc, (sum(0_50)/sum(visits)) as 0_50_visits_perc, (sum(50_250)/sum(visits)) as 50_250_visits_perc, (sum(250_500)/sum(visits)) as 250_500_visits_perc, (sum(500_1000)/sum(visits)) as 500_1000_visits_perc, (sum(1000_2000)/sum(visits)) as 1000_2000_visits_perc, (sum(2000_5000)/sum(visits)) as 2000_5000_visits_perc, (sum(5000_10000)/sum(visits)) as 5000_10000_visits_perc
+from base
+group by dt
+)
+
+Select dt, 
+neg_value_users_perc, 0_50_users_perc, 50_250_users_perc, 250_500_users_perc, 500_1000_users_perc, 1000_2000_users_perc, 2000_5000_users_perc, 5000_10000_users_perc,
+neg_value_visits_perc, 0_50_visits_perc, 50_250_visits_perc, 250_500_visits_perc, 500_1000_visits_perc, 1000_2000_visits_perc, 2000_5000_visits_perc, 5000_10000_visits_perc
+from summary
