@@ -1,0 +1,43 @@
+--DROP TABLE IF EXISTS gaminginsight.palfreemanm_gaming_gametile_clicks;
+--CREATE TABLE gaminginsight.palfreemanm_gaming_gametile_clicks
+--PARTITIONED BY (dt, yr)
+--STORED AS PARQUET 
+
+--AS
+
+--INSERT INTO gaminginsight.palfreemanm_vegas_gametile_clicks PARTITION (dt, yr)
+
+WITH base as
+(
+select  distinct
+        event_date_time_gmt,
+        cust_id,
+        visitid,
+        page_name,
+        split_part(click_event, "|", 1) as clicked_on,
+        split_part(click_event, "|", 2) as page_section,
+        split_part(click_event, "|", 3) as game_name,
+        split_part(click_event, "|", 4) as tile_position,
+        click_event,
+        case when page_name LIKE 'sky vegas/launch/%' then 'game-console' else page_name end as page,
+        case 
+        when concat(',',event_type,',') LIKE '%,20136,%' then 'vegas'
+        when concat(',',event_type,',') LIKE '%,20137,%' then 'casino'
+        when concat(',',event_type,',') LIKE '%,20138,%' then 'bingo'
+        end as product, 
+        to_date(event_date_time_gmt) as dt,
+        year(to_date(event_date_time_gmt)) as yr
+from    sbgi_business_events.adobe_events
+where   to_date(event_date_time_gmt) between '2022-06-01' and '2022-12-31'
+and     (concat(',',event_type,',') LIKE '%,20136,%' OR concat(',',event_type,',') LIKE '%,20137,%' OR concat(',',event_type,',') LIKE '%,20138,%')
+and     (click_event like '%|%'
+and     (click_event like '%[Game Tile]%' OR click_event like '%[Real Play]%' OR click_event like '%[Undefined Value]%')) --or click_event like '%[Game Info]%' (include to add game-info clicks)
+and     length(split_part(click_event, "|", 4)) > 0 --This ensures it only captures game_tile clicks NOT hero card clicks too
+and     cust_id is not null
+and     page_name NOT LIKE '%/game/%'
+and     page_name NOT LIKE '%promotions%'
+order by event_date_time_gmt asc
+)
+
+Select *
+from base
