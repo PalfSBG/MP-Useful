@@ -16,8 +16,22 @@ Select 'bet_masthead_clicks' as data_set, min(dt) as first_date, max(dt) as last
 from gaminginsight.palfreemanm_bet_masthead_clicks
 ),
 
+gaming_hero_card_clicks as (
+Select 'gaming_hero_card_clicks' as data_set, min(dt) as first_date, max(dt) as last_date
+from gaminginsight.palfreemanm_gaming_hero_card_clicks
+),
+
+gaming_gametile_clicks as (
+Select 'gaming_hero_card_clicks' as data_set, min(dt) as first_date, max(dt) as last_date
+from gaminginsight.palfreemanm_gaming_gametile_clicks
+)
+
 Select * from vegas_session_summary
 UNION
 Select * from basic_visit_summary
 UNION
 Select * from bet_masthead_clicks
+UNION
+Select * from gaming_hero_card_clicks
+UNION
+Select * from gaming_gametile_clicks
