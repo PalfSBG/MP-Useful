@@ -1,0 +1,99 @@
+ITH
+    spin_detail AS
+    (
+        SELECT
+            cust_id,
+            dt,
+            started,
+            display_name,
+            stakes                                                      AS cash_stakes,
+            lag(started, 1) over(partition BY cust_id ORDER BY started)         prev_started,
+            lead(started, 1) over(partition BY cust_id ORDER BY started)        next_started,
+            lag(display_name, 1) over(partition BY cust_id ORDER BY started)    prev_display_name
+        FROM
+            sbgi_casino.enriched_game_detail
+        WHERE
+            dt BETWEEN '2022-10-01' AND '2022-12-31'
+        AND YEAR = 2022
+    )
+    ,
+    session_flags AS
+    (
+        SELECT
+            cust_id,
+            dt,
+            started,
+            display_name,
+            cash_stakes,
+            prev_display_name,
+            prev_started,
+            next_started,
+            CASE
+                WHEN prev_started IS NULL
+                OR  ((unix_timestamp(started) - unix_timestamp(prev_started)) / 60) > 30
+                THEN 1
+                ELSE 0
+            END new_sess_flag,
+            CASE
+                WHEN prev_display_name IS NULL
+                OR  prev_display_name != display_name
+                THEN 1
+                ELSE 0
+            END new_game_flag,
+            CASE
+                WHEN prev_display_name IS NULL
+                OR  ((unix_timestamp(started) - unix_timestamp(prev_started)) / 60) > 30
+                THEN concat('SESS ', CAST(started AS string))
+            END new_sess_id,
+            CASE
+                WHEN prev_display_name IS NULL
+                OR  prev_display_name != display_name
+                THEN concat('SESS ', CAST(started AS string), ' ', display_name)
+            END new_game_id
+        FROM
+            spin_detail
+    )
+    ,
+    gaps_filled AS
+    (
+        SELECT
+            cust_id,
+            dt,
+            started,
+            display_name,
+            cash_stakes,
+            prev_started,
+            next_started,
+            new_sess_flag,
+            new_sess_id,
+            new_game_flag,
+            new_game_id,
+            MAX(new_sess_id) over(partition BY cust_id ORDER BY started DESC, prev_started DESC
+            rows BETWEEN CURRENT row AND unbounded following) session_id,
+            MAX(new_game_id) over(partition BY cust_id ORDER BY started DESC, prev_started DESC
+            rows BETWEEN CURRENT row AND unbounded following) game_id
+        FROM
+            session_flags
+    )
+    ,
+    active_sessions AS
+    (
+        SELECT
+            cust_id,
+            dt,
+            display_name,
+            MIN(started)                                   AS session_start,
+            SUM(cash_stakes)                               AS cash_stakes,
+            NTILE(100) OVER(ORDER BY SUM(cash_stakes) ASC) AS stakes_outliers
+        FROM
+            gaps_filled
+        GROUP BY
+            cust_id,
+            dt,
+            display_name,
+            game_id
+    )
+SELECT
+    *
+FROM
+    active_sessions
