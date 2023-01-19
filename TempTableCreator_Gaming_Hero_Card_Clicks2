@@ -1,0 +1,38 @@
+--DROP TABLE IF EXISTS gaminginsight.palfreemanm_gaming_hero_card_clicks;
+--CREATE TABLE gaminginsight.palfreemanm_gaming_hero_card_clicks
+--PARTITIONED BY (dt, yr)
+--STORED AS PARQUET 
+
+--AS
+
+--INSERT INTO gaminginsight.palfreemanm_visit_summary_basic PARTITION (dt, yr)
+
+WITH hero_card_clicks as (
+SELECT
+    event_date_time_gmt,
+    cust_id,
+    visitid,
+    click_event,
+    split_part(click_event, '|', 1) AS element_clicked,
+    replace(split_part(click_event, '|', 2), 'Hero:', '') AS hero_card,
+    split_part(click_event, '|', 3) AS card_position,
+    substr(replace(split_part(click_event, '|', 2), 'Hero:', ''), instr(replace(split_part(click_event, '|', 2), 'Hero:', ''), '(')+1, (instr(replace(split_part(click_event, '|', 2), 'Hero:', ''), ')') - instr(replace(split_part(click_event, '|', 2), 'Hero:', ''), '(')-1)) as hero_card_type,
+    replace(replace(replace(split_part(click_event, '|', 2), '(game)', ''), '(promotion)', ''), 'Hero:', '') AS game_promo_name,
+    case 
+    when concat(',',event_type,',') LIKE '%,20136,%' then 'vegas'
+    when concat(',',event_type,',') LIKE '%,20137,%' then 'casino'
+    when concat(',',event_type,',') LIKE '%,20138,%' then 'bingo'
+    end as product,
+    to_date(event_date_time_gmt) AS dt,
+    year(to_date(event_date_time_gmt)) AS yr
+FROM
+    sbgi_business_events.adobe_events a
+WHERE
+    (concat(',',event_type,',') LIKE '%,20136,%' OR concat(',',event_type,',') LIKE '%,20137,%' OR concat(',',event_type,',') LIKE '%,20138,%')
+AND click_event LIKE '%Hero:%' --Clicks on the Sky Vegas hero cards
+AND page_name IN ('sky vegas/home', 'sky casino/home', 'sky bingo/home') --Ensures it is only the homepage hero cards
+and to_date(event_date_time_gmt) > '2022-01-01'
+)
+
+Select * 
+from hero_card_clicks
