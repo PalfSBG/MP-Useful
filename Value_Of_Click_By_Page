@@ -1,0 +1,53 @@
+WITH clicks as (
+Select dt, event_date_time_gmt, cust_id, page, page_section, game_name, tile_position  
+from gaminginsight.palfreemanm_vegas_gametile_clicks
+where yr = 2022
+and dt BETWEEN date_sub(date_trunc('day', now()), 180) AND date_sub(date_trunc('day', now()), 1) --Limit to 180 days because other Impala crashes
+),
+
+sessions as (
+Select dt, cust_id, game_id, session_start, session_end, session_length_mins, bets_per_sess, cash_stakes_per_sess, gross_margin_per_sess, assumed_margin_per_sess 
+from gaminginsight.palfreemanm_vegas_session_summary
+where dt BETWEEN date_sub(date_trunc('day', now()), 180) AND date_sub(date_trunc('day', now()), 1) --Limit to 180 days because other Impala crashes
+),
+
+joined as (
+Select c.dt, event_date_time_gmt, c.cust_id, page, page_section, game_name, tile_position, 
+case when game_id IS NULL then 0 else 1 end as session_flag, 
+game_id, session_start, session_end, session_length_mins, bets_per_sess, cash_stakes_per_sess, gross_margin_per_sess, assumed_margin_per_sess
+from clicks c
+left join sessions s
+on c.cust_id = s.cust_id
+and c.dt = s.dt
+and unix_timestamp(event_date_time_gmt) between unix_timestamp(session_start) - 60 and unix_timestamp(session_start)
+),
+
+summary_by_day as (
+Select dt, page, count(event_date_time_gmt) as clicks, sum(session_flag) as matched_sessions, (1 - (sum(session_flag) / count(event_date_time_gmt))) as aban_rate,
+sum(session_length_mins) as total_session_length, avg(session_length_mins) as avg_session_length,
+sum(bets_per_sess) as total_bets_per_sess, avg(bets_per_sess) as avg_bets_per_sess,
+sum(cash_stakes_per_sess) as total_cash_stakes_per_sess, avg(cash_stakes_per_sess) as avg_cash_stakes_per_sess,
+sum(gross_margin_per_sess) as total_gross_margin_per_sess, avg(gross_margin_per_sess) as avg_gross_margin_per_sess,
+sum(assumed_margin_per_sess) as total_assumed_margin_per_sess, avg(assumed_margin_per_sess) as avg_assumed_margin_per_sess  
+from joined
+group by dt, page
+)
+
+Select page, 
+sum(clicks) as total_clicks,
+avg(clicks) as avg_daily_clicks, 
+sum(matched_sessions) as total_matched_sessions, 
+avg(matched_sessions) as avg_daily_matched_sessions,
+(1 - sum(matched_sessions) / sum(clicks)) as aban_rate,
+sum(total_session_length) / sum(matched_sessions) as avg_session_length,
+sum(total_bets_per_sess) / sum(matched_sessions) as avg_bets_per_sess,
+sum(total_bets_per_sess) as total_bets,
+sum(total_cash_stakes_per_sess) as total_cash_stakes, 
+sum(total_cash_stakes_per_sess) / sum(matched_sessions) as avg_cash_stakes_per_sess,
+sum(total_gross_margin_per_sess) as total_gross_margin, 
+sum(total_gross_margin_per_sess) / sum(matched_sessions) as avg_gross_margin_per_sess,
+sum(total_assumed_margin_per_sess) as total_assumed_margin, 
+sum(total_assumed_margin_per_sess) / sum(matched_sessions) as avg_assumed_margin_per_sess
+from summary_by_day
+where clicks > 100
+group by page
