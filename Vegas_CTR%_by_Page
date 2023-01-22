@@ -1,0 +1,60 @@
+WITH base AS (
+Select to_date(event_date_time_gmt) as dt, page_name
+from sbgi_business_events.adobe_events a
+WHERE concat(',',event_type,',') LIKE '%,200,%' --Page View 
+and concat(',',event_type,',') LIKE '%,20136,%' --Sky Vegas
+and page_name IN (
+'sky vegas/games/party-pots',
+'sky vegas/games/pub-fruits',
+'sky vegas/games/roulette',
+'sky vegas/games/jackpot-king',
+'sky vegas/games/jackpots',
+'sky vegas/games/blackjack',
+'sky vegas/games/megaways',
+'sky vegas/games/slots',
+'sky vegas/games/slingo',
+'sky vegas/home',
+'sky vegas/games/new',
+'sky vegas/games/live-dealers',
+'sky vegas/games/table-games',
+'sky vegas/games/instant-win',
+'sky vegas/must-go-jackpots',
+'sky vegas/all-games')
+and to_date(event_date_time_gmt) BETWEEN date_sub(date_trunc('day', now()), 180) AND date_sub(date_trunc('day', now()), 1) --Limit to 180 days because otherwise Impala crashes
+),
+
+page_views as (
+Select dt, page_name, count(page_name) as page_views
+from base
+group by dt, page_name
+),
+
+clicks as (
+Select dt, page, count(page) as clicks
+from gaminginsight.palfreemanm_vegas_gametile_clicks
+where page_name IN (
+'sky vegas/games/party-pots',
+'sky vegas/games/pub-fruits',
+'sky vegas/games/roulette',
+'sky vegas/games/jackpot-king',
+'sky vegas/games/jackpots',
+'sky vegas/games/blackjack',
+'sky vegas/games/megaways',
+'sky vegas/games/slots',
+'sky vegas/games/slingo',
+'sky vegas/home',
+'sky vegas/games/new',
+'sky vegas/games/live-dealers',
+'sky vegas/games/table-games',
+'sky vegas/games/instant-win',
+'sky vegas/must-go-jackpots',
+'sky vegas/all-games')
+and dt BETWEEN date_sub(date_trunc('day', now()), 180) AND date_sub(date_trunc('day', now()), 1) --Limit to 180 days because otherwise Impala crashes
+group by dt, page
+)
+
+Select p.dt, p.page_name, page_views, clicks, (clicks / page_views) as CTR_perc
+from page_views p
+left join clicks c
+on p.dt = c.dt
+and p.page_name = c.page
