@@ -1,0 +1,69 @@
+With banner_clicks as (
+Select to_date(event_date_time_gmt) as dt, r.cust_id, visitid, click_event as banner_click, event_date_time_gmt as banner_click_timestamp  
+from gaminginsight.palfreemanm_reengaged_users r
+left join gaminginsight.palfreemanm_vbanner_clicks c
+on r.cust_id = c.cust_id
+),
+
+visits as (
+Select u.cust_id, v.visitid, v.visit_start, v.visit_end, v.product, v.dt, v.yr
+from gaminginsight.palfreemanm_visit_summary_basic v
+right join banner_clicks u
+on u.cust_id = v.cust_id
+and u.dt = v.dt
+where v.product = 'vegas'
+and yr IN (2022, 2023)
+and v.dt >= (Select min(dt) from banner_clicks)
+),
+
+visit_match as (
+Select m.dt, m.cust_id, banner_click, banner_click_timestamp, v.visitid, v.visit_start, v.visit_end
+from banner_clicks m
+left join visits v
+on m.cust_id = v.cust_id
+and m.dt = v.dt
+and unix_timestamp(banner_click_timestamp) between unix_timestamp(visit_start) - 60 and unix_timestamp(visit_start)
+),
+
+sessions as (
+Select m.cust_id, m.dt, game_id, session_start, session_end, session_length_mins, bets_per_sess, cash_stakes_per_sess, gross_margin_per_sess, assumed_margin_per_sess
+from gaminginsight.palfreemanm_vegas_session_summary v
+right join banner_clicks m
+on m.cust_id = v.cust_id
+and m.dt = v.dt
+where v.dt >= (Select min(dt) from banner_clicks)
+),
+
+summary as (
+Select v.cust_id, v.dt, v.banner_click, v.banner_click_timestamp, v.visitid, v.visit_start, v.visit_end, s.game_id, s.session_start, s.session_end, s.session_length_mins, s.bets_per_sess, s.cash_stakes_per_sess, s.gross_margin_per_sess, s.assumed_margin_per_sess  
+from visit_match v
+left join sessions s
+on v.cust_id = s.cust_id
+and v.dt = s.dt
+and unix_timestamp(session_start) between unix_timestamp(visit_start) and unix_timestamp(visit_end)
+),
+
+trans_summary AS (
+Select cust_id, dt, banner_click, banner_click_timestamp, visitid, visit_start, visit_end, 
+case when count(game_id) = 0 then 0 else 1 end as gaming_session,
+case when visitid IS NULL then 0 else 1 end as gaming_visit,
+count(game_id) as total_sessions, sum(session_length_mins) as total_time_playing, sum(bets_per_sess) as total_bets, sum(cash_stakes_per_sess) as total_stakes, sum(gross_margin_per_sess) as total_Gmargin, sum(assumed_margin_per_sess) as total_Amargin  
+from summary
+group by cust_id, dt, banner_click, banner_click_timestamp, visitid, visit_start, visit_end
+)
+
+Select * 
+from trans_summary
+
+Select dt, 
+count(banner_click) as banner_clicks, 
+sum(gaming_visit) as subsequent_gaming_visit, 
+sum(gaming_session) as subsequent_gaming_session, 
+sum(gaming_session) / count(banner_click) as sgs_conv, 
+round(avg(total_sessions), 1) as avg_gaming_sessions_played_per_click, 
+round(avg(total_time_playing), 2) as avg_time_playing_mins_per_click, 
+round(avg(total_stakes), 2) as avg_amount_staked_per_click, 
+round(avg(total_gmargin), 2) as avg_gmargin_per_click, 
+round(avg(total_amargin), 2) as avg_amargin_per_click 
+from trans_summary
+group by dt
