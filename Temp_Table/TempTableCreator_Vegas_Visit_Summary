@@ -10,9 +10,9 @@
 WITH adobe_data AS (
 SELECT *
 FROM sbgi_business_events.adobe_events
-WHERE month(to_date(event_date_time_gmt)) = 12
-AND month(dt) IN (11, 12, 1)
-and year(dt) IN (2022, 2023)
+WHERE month(to_date(event_date_time_gmt)) IN (4,5,6)
+AND month(dt) IN (3, 4, 5, 6, 7)
+and year(dt) IN (2021, 2022)
 AND concat(',',event_type,',') LIKE '%,20136,%'
 ),
 
@@ -33,8 +33,18 @@ page_views as (
 Select to_date(event_date_time_gmt) as dt, visitid, event_date_time_gmt, 
 CASE WHEN concat(',',event_type,',') LIKE '%,200,%' THEN 1 END AS pageviews_all,
 CASE WHEN concat(',',event_type,',') LIKE '%,200,%' AND page_name = 'sky vegas/home' THEN 1 END AS pageviews_home,
-CASE WHEN concat(',',event_type,',') LIKE '%,200,%' AND (page_name = 'sky vegas/all-games' OR page_name LIKE 'sky vegas/games/%' OR page_name = 'sky vegas/must-go-jackpots') THEN 1 END AS pageviews_allgames_categories,
-CASE WHEN concat(',',event_type,',') LIKE '%,200,%' AND (page_name = 'sky vegas/prize machine game' OR  page_name = 'sky vegas/prize machine game - mega') THEN 1 END AS pageviews_pm_modal,
+CASE WHEN concat(',',event_type,',') LIKE '%,200,%' AND page_name = 'sky vegas/all-games' THEN 1 END AS pageviews_allgames,
+CASE WHEN concat(',',event_type,',') LIKE '%,200,%' AND page_name = 'sky vegas/must-go-jackpots' THEN 1 END AS pageviews_mustgojackpots,
+CASE WHEN concat(',',event_type,',') LIKE '%,200,%' AND page_name LIKE 'sky vegas/games/new' THEN 1 END AS pageviews_new,
+CASE WHEN concat(',',event_type,',') LIKE '%,200,%' AND page_name LIKE 'sky vegas/games/jackpots' THEN 1 END AS pageviews_jackpots,
+CASE WHEN concat(',',event_type,',') LIKE '%,200,%' AND page_name LIKE 'sky vegas/games/jackpot-king' THEN 1 END AS pageviews_jackpotking,
+CASE WHEN concat(',',event_type,',') LIKE '%,200,%' AND page_name LIKE 'sky vegas/games/pub-fruits' THEN 1 END AS pageviews_pubfruits,
+CASE WHEN concat(',',event_type,',') LIKE '%,200,%' AND page_name LIKE 'sky vegas/games/party-pots' THEN 1 END AS pageviews_partypots,
+CASE WHEN concat(',',event_type,',') LIKE '%,200,%' AND page_name LIKE 'sky vegas/games/megaways' THEN 1 END AS pageviews_megaways,
+CASE WHEN concat(',',event_type,',') LIKE '%,200,%' AND page_name LIKE 'sky vegas/games/slots' THEN 1 END AS pageviews_slots,
+CASE WHEN concat(',',event_type,',') LIKE '%,200,%' AND page_name LIKE 'sky vegas/games/roulette' THEN 1 END AS pageviews_roulette,
+CASE WHEN concat(',',event_type,',') LIKE '%,200,%' AND page_name LIKE 'sky vegas/games/blackjack' THEN 1 END AS pageviews_blackjack,
+CASE WHEN concat(',',event_type,',') LIKE '%,200,%' AND (page_name = 'sky vegas/prize machine game' OR page_name = 'sky vegas/prize machine game - mega') THEN 1 END AS pageviews_pm_modal,
 CASE WHEN concat(',',event_type,',') LIKE '%,200,%' AND page_name = 'sky vegas/promotions' then 1 end as pageviews_promotions_list,
 CASE WHEN concat(',',event_type,',') LIKE '%,200,%' AND page_name LIKE 'sky vegas/promotions/%' AND page_name <> 'sky vegas/promotions/prizemachineoptin' AND page_name NOT LIKE 'sky vegas/promotions/mega%' AND page_name NOT LIKE 'sky vegas/promotions/mpm%' AND page_name NOT LIKE 'sky vegas/promotions/pm%' THEN 1 END AS pageviews_promotions_not_pm,
 CASE WHEN concat(',',event_type,',') LIKE '%,200,%' AND page_name = 'sky vegas/promotions/prizemachineoptin' THEN 1 END AS pageviews_promotions_pm_optin,
@@ -57,8 +67,8 @@ Select dt, visitid,
 sum(pageviews_all) as total_page_views,
 sum(pageviews_home) as pageviews_home, 
 max(pageviews_home) as viewed_home,
-sum(pageviews_allgames_categories) as pageviews_allgames_categories,
-max(pageviews_allgames_categories) as viewed_allgames_categories,
+sum(pageviews_allgames) as pageviews_allgames,
+max(pageviews_allgames) as viewed_allgames,
 sum(pageviews_pm_modal) as pageviews_pm_modal,
 max(pageviews_pm_modal) as viewed_pm_modal,
 sum(pageviews_dep_limit_page) as pageviews_dep_limit_page, 
@@ -86,7 +96,27 @@ max(pageviews_landing_page) as viewed_landing_page,
 sum(pageviews_gameinfo) as pageviews_gameinfo,
 max(pageviews_gameinfo) as viewed_gameinfo, 
 sum(pageviews_in_game) as pageviews_in_game,
-max(pageviews_in_game) as viewed_in_game
+max(pageviews_in_game) as viewed_in_game,
+sum(pageviews_mustgojackpots) as pageviews_mustgojackpots,
+sum(pageviews_new) as pageviews_new,
+sum(pageviews_jackpots) as pageviews_jackpots,
+sum(pageviews_jackpotking) as pageviews_jackpotking,
+sum(pageviews_pubfruits) as pageviews_pubfruits,
+sum(pageviews_partypots) as pageviews_partypots,
+sum(pageviews_megaways) as pageviews_megaways,
+sum(pageviews_slots) as pageviews_slots,
+sum(pageviews_roulette) as pageviews_roulette,
+sum(pageviews_blackjack) as pageviews_blackjack,
+max(pageviews_mustgojackpots) as viewed_mustgojackpots,
+max(pageviews_new) as viewed_new,
+max(pageviews_jackpots) as viewed_jackpots,
+max(pageviews_jackpotking) as viewed_jackpotking,
+max(pageviews_pubfruits) as viewed_pubfruits,
+max(pageviews_partypots) as viewed_partypots,
+max(pageviews_megaways) as viewed_megaways,
+max(pageviews_slots) as viewed_slots,
+max(pageviews_roulette) as viewed_roulette,
+max(pageviews_blackjack) as viewed_blackjack
 from page_views
 group by dt, visitid
 ),
@@ -302,7 +332,7 @@ nvl(table_game_page_tile, 0) as table_game_page_tile,
 nvl(instant_win_page_tile, 0) as instant_win_page_tile,
 nvl(total_page_views, 0) as total_page_views, 
 nvl(pageviews_home, 0) as pageviews_home, 
-nvl(pageviews_allgames_categories, 0) as pageviews_allgames_categories, 
+nvl(pageviews_allgames, 0) as pageviews_allgames, 
 nvl(pageviews_pm_modal, 0) as pageviews_pm_modal, 
 nvl(pageviews_dep_limit_page, 0) as pageviews_dep_limit_page, 
 nvl(pageviews_cool_off_page, 0) as pageviews_cool_off_page, 
@@ -317,8 +347,18 @@ nvl(pageviews_core, 0) as pageviews_core,
 nvl(pageviews_landing_page, 0) as pageviews_landing_page, 
 nvl(pageviews_gameinfo, 0) as pageviews_gameinfo, 
 nvl(pageviews_in_game, 0) as pageviews_in_game,
+nvl(pageviews_mustgojackpots, 0) as pageviews_mustgojackpots,
+nvl(pageviews_new, 0) as pageviews_new,
+nvl(pageviews_jackpots, 0) as pageviews_jackpots,
+nvl(pageviews_jackpotking, 0) as pageviews_jackpotking,
+nvl(pageviews_pubfruits, 0) as pageviews_pubfruits,
+nvl(pageviews_partypots, 0) as pageviews_partypots,
+nvl(pageviews_megaways, 0) as pageviews_megaways,
+nvl(pageviews_slots, 0) as pageviews_slots,
+nvl(pageviews_roulette, 0) as pageviews_roulette,
+nvl(pageviews_blackjack, 0) as pageviews_blackjack,
 nvl(viewed_home, 0) as viewed_home, 
-nvl(viewed_allgames_categories, 0) as viewed_allgames_categories, 
+nvl(viewed_allgames, 0) as viewed_allgames, 
 nvl(viewed_pm_modal, 0) as viewed_pm_modal, 
 nvl(viewed_dep_limit_page, 0) as viewed_dep_limit_page, 
 nvl(viewed_cool_off_page, 0) as viewed_cool_off_page, 
@@ -332,7 +372,31 @@ nvl(viewed_promotions_not_pm, 0) as viewed_promotions_not_pm,
 nvl(viewed_core, 0) as viewed_core, 
 nvl(viewed_landing_page, 0) as viewed_landing_page, 
 nvl(viewed_gameinfo, 0) as viewed_gameinfo, 
-nvl(viewed_in_game, 0) as viewed_in_game
+nvl(viewed_in_game, 0) as viewed_in_game,
+nvl(pageviews_mustgojackpots, 0) as viewed_mustgojackpots,
+nvl(pageviews_new, 0) as viewed_new,
+nvl(pageviews_jackpots, 0) as viewed_jackpots,
+nvl(pageviews_jackpotking, 0) as viewed_jackpotking,
+nvl(pageviews_pubfruits, 0) as viewed_pubfruits,
+nvl(pageviews_partypots, 0) as viewed_partypots,
+nvl(pageviews_megaways, 0) as viewed_megaways,
+nvl(pageviews_slots, 0) as viewed_slots,
+nvl(pageviews_roulette, 0) as viewed_roulette,
+nvl(viewed_blackjack, 0) as viewed_blackjack,
+nvl(total_games_launched, 0) AS total_games_launched,
+nvl(game_launched, 0) AS game_launched, 
+nvl(total_deposits_placed, 0) AS total_deposits_placed,
+nvl(deposit_placed, 0) AS deposit_placed,
+nvl(total_withdrawals_made, 0) AS total_withdrawals_made,
+nvl(withdrawal_made, 0) AS withdrawal_made,
+nvl(total_reg_starts, 0) AS total_reg_starts,
+nvl(reg_start, 0) AS reg_start,
+nvl(reg_complete, 0) AS reg_complete,
+nvl(reg_pm_spin, 0) AS reg_pm_spin,
+nvl(mega_pm_spin, 0) AS mega_pm_spin,
+nvl(pm_spin, 0) AS pm_spin,
+nvl(hero_card_clicks, 0) AS hero_card_clicks,
+nvl(hero_card_clicked, 0) AS hero_card_clicked
 from summarise_page_views p
 left join summarise_game_tile_clicks c
 on p.visitid = c.visitid
@@ -346,7 +410,9 @@ dna_data AS (
 SELECT * 
 FROM sbg_models.customer_dna_history 
 WHERE feature IN ('current_value.vgs.bands', 'mpp_freq.sbg.bands', 'fav_product.sbg.bands', 'churn.vgs.bands')
-AND dt BETWEEN '2022-12-01' AND '2022-12-31'
+AND dt > (Select min(dt) from adobe_data)
+and dt < (Select max(dt) from adobe_data)
+--BETWEEN '2022-01-01' AND '2022-12-31'
 AND YEAR = 2022
 ),
 
@@ -407,8 +473,10 @@ siteorappversion, channel_name, phone_model, operating_system, manufacturer, vis
 vgs_value_band, mpp_freq_band, fav_product_band, vgs_churn_band, cr_date, 
 recently_played_tile_clicks, games_featured_tile_clicks, games_instant_win_tile_clicks, games_jackpot_king_tile_clicks, games_live_dealers_tile_clicks, games_must_go_jackpots_tile_clicks, games_party_pots_tile_clicks, games_play_it_here_first_tile_clicks, games_recommended_games_tile_clicks, games_slots_tile_clicks, games_table_games_tile_clicks, promotion_page_tile_clicks, search_tile_clicks, all_games_tile_clicks, new_page_tile_clicks, must_go_jackpot_page_tile_clicks, live_dealer_page_tile_clicks, party_pots_game_tile_clicks, slingo_page_tile_clicks, pub_fruits_page_tile_clicks, megaways_page_tile_clicks, slots_page_tile_clicks, jackpots_page_tile_clicks, jackpot_king_page_tile_clicks, roulette_page_tile_clicks, blackjack_page_tile_clicks, table_game_page_tile_clicks, instant_win_page_tile_clicks,
 clicked_recently_played_tile, clicked_games_featured_tile, clicked_games_instant_win_tile, clicked_games_jackpot_king_tile, clicked_games_live_dealers_tile, clicked_games_must_go_jackpots_tile, clicked_games_party_pots_tile, clicked_games_play_it_here_first_tile, clicked_games_recommended_games, clicked_games_slots_tile, clicked_games_table_games_tile, clicked_promotion_page_tile, clicked_search_tile, clicked_all_games_tile, new_page_tile, must_go_jackpot_page_tile, live_dealer_page_tile, party_pots_game_tile, slingo_page_tile, pub_fruits_page_tile, megaways_page_tile, slots_page_tile, jackpots_page_tile, jackpot_king_page_tile, roulette_page_tile, blackjack_page_tile, table_game_page_tile, instant_win_page_tile,
-total_page_views, pageviews_home, pageviews_allgames_categories, pageviews_pm_modal, pageviews_dep_limit_page, pageviews_cool_off_page, pageviews_reality_check_page, pageviews_self_excl_page, pageviews_sg_page, pageviews_promotions_list, pageviews_promotions_pm_optin, pageviews_promotions_pm_win, pageviews_promotions_not_pm, pageviews_core, pageviews_landing_page, pageviews_gameinfo, pageviews_in_game,
-viewed_home, viewed_allgames_categories, viewed_pm_modal, viewed_dep_limit_page, viewed_cool_off_page, viewed_reality_check_page, viewed_self_excl_page, viewed_sg_page, viewed_promotions_list, viewed_promotions_pm_optin, viewed_promotions_pm_win, viewed_promotions_not_pm, viewed_core, viewed_landing_page, viewed_gameinfo, viewed_in_game, s.dt, yr
+total_page_views, pageviews_home, pageviews_allgames, pageviews_pm_modal, pageviews_dep_limit_page, pageviews_cool_off_page, pageviews_reality_check_page, pageviews_self_excl_page, pageviews_sg_page, pageviews_promotions_list, pageviews_promotions_pm_optin, pageviews_promotions_pm_win, pageviews_promotions_not_pm, pageviews_core, pageviews_landing_page, pageviews_gameinfo, pageviews_in_game, pageviews_mustgojackpots, pageviews_new, pageviews_jackpots, pageviews_jackpotking, pageviews_pubfruits, pageviews_partypots, pageviews_megaways, pageviews_slots, pageviews_roulette, pageviews_blackjack,
+viewed_home, viewed_allgames, viewed_pm_modal, viewed_dep_limit_page, viewed_cool_off_page, viewed_reality_check_page, viewed_self_excl_page, viewed_sg_page, viewed_promotions_list, viewed_promotions_pm_optin, viewed_promotions_pm_win, viewed_promotions_not_pm, viewed_core, viewed_landing_page, viewed_gameinfo, viewed_in_game, viewed_mustgojackpots, viewed_new, viewed_jackpots, viewed_jackpotking, viewed_pubfruits, viewed_partypots, viewed_megaways, viewed_slots, viewed_roulette, viewed_blackjack, 
+total_games_launched, game_launched, total_deposits_placed, deposit_placed, total_withdrawals_made, withdrawal_made, total_reg_starts, reg_start, reg_complete, reg_pm_spin, mega_pm_spin, pm_spin, hero_card_clicks, hero_card_clicked,
+s.dt, yr
 from summarise_visit s
 left join visit_details v
 on s.visitid = v.visitid
