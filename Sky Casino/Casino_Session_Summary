@@ -1,4 +1,4 @@
-ITH
+WITH
     spin_detail AS
     (
         SELECT
