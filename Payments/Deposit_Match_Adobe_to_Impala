@@ -1,0 +1,40 @@
+WITH adobe_base as (
+Select to_date(event_date_time_gmt) as dt, cust_id, event_date_time_gmt,
+case 
+when concat(',',event_type,',') LIKE '%,234,%' then 'deposit'
+when concat(',',event_type,',') LIKE '%,266,%' then 'withdrawal'
+end as payment_type,
+case 
+when concat(',',event_type,',') LIKE '%,20135,%' then 'sportsbook'
+when concat(',',event_type,',') LIKE '%,20136,%' then 'vegas'
+when concat(',',event_type,',') LIKE '%,20137,%' then 'casino'
+when concat(',',event_type,',') LIKE '%,20138,%' then 'bingo'
+end as product
+from sbgi_business_events.adobe_events
+WHERE (concat(',',event_type,',') LIKE '%,234,%' OR concat(',',event_type,',') LIKE '%,266,%') 
+and to_date(event_date_time_gmt) = '2022-12-10'
+--AND month(event_date_time_gmt) = 12
+group by 1,2,3,4,5
+),
+
+payments as (
+SELECT cust_id, dt, aud_datetime,
+case
+when (payment_type = 'D' AND payment_status = 'Y') then 'deposit'
+when (payment_type = 'W' AND payment_status = 'Y') then 'withdrawal'
+end as payment_type,
+case when (payment_type = 'D' AND payment_status = 'Y') then payment_amount else 0 end AS Deposited,
+case when (payment_type = 'W' AND payment_status = 'Y') then payment_amount else 0 end AS Withdrawn
+FROM sbgi_transactions.payment_detail
+WHERE ((payment_type = 'D' and payment_status = 'Y') or (payment_type = 'W'and payment_status = 'Y'))
+and month(dt) = 12
+--AND dt >= date_sub(date_trunc('day', now()), 31)
+)
+
+Select a.dt, a.cust_id, event_date_time_gmt, a.payment_type, product, aud_datetime, deposited, withdrawn 
+from adobe_base a
+left join payments p
+on a.cust_id = p.cust_id
+and a.dt = p.dt
+and a.payment_type = p.payment_type
+and unix_timestamp(event_date_time_gmt) BETWEEN unix_timestamp(aud_datetime) - 30 AND unix_timestamp(aud_datetime) + 30  
