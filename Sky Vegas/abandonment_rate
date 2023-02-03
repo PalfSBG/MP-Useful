@@ -1,0 +1,27 @@
+WITH clicks AS (
+Select * 
+from gaminginsight.palfreemanm_gaming_gametile_clicks
+where product = 'vegas'
+and yr = 2022
+and dt >= '01-01-2022'
+),
+
+sessions as (
+Select *
+from gaminginsight.palfreemanm_vegas_session_summary
+where dt >= '01-01-2022'
+),
+
+joined as (
+Select c.dt, event_date_time_gmt, session_start, session_end, page_section, tile_position, page, 1 as tile_click,
+case when session_start IS NOT NULL then 1 else 0 end as matched_session  
+from clicks c
+left join sessions s
+on c.cust_id = s.cust_id
+and c.dt = s.dt
+and unix_timestamp(session_start) BETWEEN unix_timestamp(event_date_time_gmt) AND unix_timestamp(event_date_time_gmt) + 60 
+)
+
+Select dt, page, sum(tile_click) as tile_clicks, sum(matched_session) as matched_sessions, (1- sum(matched_session) / sum(tile_click)) as aban_rate  
+from joined
+group by dt, page
