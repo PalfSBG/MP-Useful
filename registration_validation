@@ -1,0 +1,38 @@
+WITH account_creation AS (
+Select cust_id, to_date(cr_date) as acct_creation_dt, cr_date as acct_creation_ts, reg_prod_status  
+from sbgi_customers.customers_detail
+where year(cr_date) = 2022
+and to_date(cr_date) = '2022-01-01'
+),
+
+new_acqs as (
+SELECT cust_id, first_deposit_date
+FROM betinsight.hibberds_cust_level_12m_predictions b
+where cust_id IN (select cust_id from account_creation)
+),
+    
+complete_reg as (
+Select to_date(event_date_time_gmt) as reg_complete_dt, cust_id, event_date_time_gmt as reg_complete_ts,
+case 
+when concat(',',event_type,',') LIKE '%,20135,%' then 'sportsbook'
+when concat(',',event_type,',') LIKE '%,20136,%' then 'vegas'
+when concat(',',event_type,',') LIKE '%,20137,%' then 'casino'
+when concat(',',event_type,',') LIKE '%,20138,%' then 'bingo'
+end as product
+from sbgi_business_events.adobe_events a
+WHERE concat(',',event_type,',') like '%,20115,%' --Sky Vegas
+and dt = '2022-01-01'
+and cust_id IN (select cust_id from account_creation)
+),
+
+summary as (
+Select a.cust_id, acct_creation_dt, acct_creation_ts, reg_prod_status, reg_complete_dt, reg_complete_ts, product, first_deposit_date
+from account_creation a 
+left join new_acqs n
+on a.cust_id = n.cust_id
+left join complete_reg c
+on a.cust_id = c.cust_id 
+)
+
+Select * 
+from summary
