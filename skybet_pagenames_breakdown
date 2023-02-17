@@ -1,0 +1,97 @@
+WITH adobe_base AS (
+Select page_name,
+case 
+when (page_name LIKE 'sky/sbandg%' OR page_name like 'sky bet ih/%' OR page_name like 'sky bet/%' OR page_name like '/verification/%') then 'account'
+when (page_name = '/native/mbet/home/live' OR page_name = '/mbet') then 'homepage'
+when page_name LIKE '/mbet/search%' then 'search'
+when (page_name LIKE '/mbet/promotions%' OR page_name = '/mbet/value-statement') then 'promotions'
+when (page_name = '/mbet/daily-derby' OR page_name = '/mbet/daily-shootout') then 'daily_ftp'
+when page_name LIKE '/mbet/landing%' then 'landing_pages'
+when page_name LIKE '/mbet/promotion landing%' then 'promotion_landing'
+when (page_name LIKE '/mbet/sky-bet-club%' OR page_name LIKE '/native/sbcmodal%') then 'sky_bet_club'
+when page_name LIKE '/mbet/my-bets%' then 'my_bets'
+when page_name LIKE '/mbet/betslip%' then 'betslip'
+when page_name LIKE '%groupbetting%' then 'group_betting'
+when page_name = '/mbet/whatson/live' then 'whats_on'
+--CATEGORIES
+when page_name LIKE '/mbet/football%' then 'football'
+when page_name LIKE '/mbet/horse-racing%' then 'horse_racing'
+when page_name LIKE '/mbet/greyhound-racing%' then 'greyhound_racing'
+when page_name LIKE '/mbet/darts%' then 'darts'
+when page_name LIKE '/mbet/boxing%' then 'boxing'
+when page_name LIKE '/mbet/basketball%' then 'basketball'
+when page_name LIKE '/mbet/tennis%' then 'tennis'
+when page_name LIKE '/mbet/american-football%' then 'american_football'
+when page_name LIKE '/mbet/snooker%' then 'snooker'
+when page_name LIKE '/mbet/rugby-union%' then 'rugby_union'
+when page_name LIKE '/mbet/rugby-league%' then 'rugby_league'
+when page_name LIKE '/mbet/cricket%' then 'cricket'
+when page_name LIKE '/mbet/golf%' then 'golf'
+when page_name LIKE '/mbet/ice-hockey%' then 'ice_hockey'
+when page_name LIKE '/mbet/politics%' then 'politics'
+when page_name LIKE '/mbet/wrestling%' then 'wrestling'
+when page_name LIKE '/mbet/bowls%' then 'bowls'
+when page_name LIKE '/mbet/cycling%' then 'cycling'
+when page_name LIKE '/mbet/formula-1%' then 'formula_one'
+when page_name LIKE '/mbet/esports%' then 'esports'
+when page_name LIKE '/mbet/lotto%' then 'lotto'
+when page_name LIKE '/mbet/speedway%' then 'speedway'
+when page_name LIKE '/mbet/volleyball%' then 'volleyball'
+when page_name LIKE '/mbet/baseball%' then 'baseball'
+when page_name LIKE '/mbet/speciality-bets%' then 'specialty'
+when page_name LIKE '/mbet/table-tennis%' then 'table_tennis'
+when page_name LIKE '/mbet/gaelic_games%' then 'gaelic_games'
+when page_name LIKE '/mbet/aussie-rules%' then 'aussie_rules'
+when page_name LIKE '/mbet/motor-sport%' then 'motor_sport'
+when page_name LIKE '/mbet/sports-specials%' then 'sports_specials'
+when page_name LIKE '/mbet/netball%' then 'netball'
+when page_name LIKE '/mbet/handball%' then 'handball'
+when page_name LIKE '/mbet/badminton%' then 'badminton'
+when page_name LIKE '/mbet/winter-sports%' then 'winter_sports'
+when page_name LIKE '/mbet/pool%' then 'pool'
+when page_name LIKE '/mbet/tv-music-and-film%' then 'tv_music_film'
+when page_name LIKE '/mbet/ufc-and-mma%' then 'ufc_and_mma'
+when page_name LIKE '/mbet/virtual%' then 'virtuals'
+--OTHER
+when page_name LIKE '/mbet/sky-bet-games%' then 'sky_bet_games'
+when page_name LIKE '/mbet/home%' then split_part(page_name, '/', 3)
+else 'uncategorised'
+end as site_section,
+case 
+when page_name like '%/coupon/%' then 'coupon_page'
+when page_name like '%/pre-live/%' then 'pre_live_event_page'
+when page_name like '%/live/%' then 'in_play_event_page'
+--FOOTBALL
+when page_name IN ('/mbet/football/coupons', '/mbet/football/live', '/mbet/football/competitions', '/mbet/football/home', '/mbet/football/featured', '/mbet/football/specials', '/mbet/football/popularbets') then replace(replace(page_name, '/mbet/', ''), '/', '_')
+--HORSE-RACING
+when page_name IN ('/mbet/horse-racing/nextraces', '/mbet/horse-racing/meetings', '/mbet/horse-racing/futures', '/mbet/horse-racing/featured', '/mbet/horse-racing/specials', '/mbet/horse-racing/popularbets') then replace(replace(replace(page_name, '/mbet/', ''), '/', '_'), '-', '_')
+--ACCOUNT
+when (page_name LIKE '%/bet-history%' OR page_name LIKE '%pool-betting%') then 'bet_history'
+when page_name LIKE '%/gaming-history%' then 'gaming_history'
+when page_name LIKE '%suspended%' then 'account_suspended'
+when (page_name LIKE '%details/%' OR page_name LIKE '%preferences%' OR page_name LIKE '%my-account') then 'account'
+when page_name LIKE '%/profit-and-loss%' then 'profit_and_loss'
+when (page_name LIKE '%self-exclusion%' OR page_name LIKE '%cool-off%' OR page_name LIKE '%deposit-limit%' OR page_name LIKE '%reality-check%' OR page_name LIKE '%safer-gambling%' OR page_name LIKE '%spend-limits%' OR page_name LIKE '%customer-next-actions%') then 'safer_gambling'
+when (page_name LIKE '%login%' OR page_name LIKE '%recover%' OR page_name LIKE '%login%' OR page_name LIKE '%pin%' OR page_name LIKE '%unlock%') then 'login'
+when (page_name LIKE '%registration%' OR page_name LIKE '%upgrade%') then 'registration'
+when page_name LIKE '%verification%' then 'verification'
+when (page_name LIKE '%deposit%' OR page_name LIKE '%withdrawal%' OR page_name LIKE '%banking-history%' OR page_name LIKE '%payment-methods%' OR page_name LIKE '%add-card%') then 'payments'
+else 'uncategorised'
+end as site_subsection
+
+from sbgi_business_events.adobe_events a
+WHERE concat(',',event_type,',') like '%,20135,%' --Sky Bet
+and concat(',',event_type,',') like '%,200,%' --Page Views
+and year(dt) = 2023
+and dt < '2023-02-17'
+and lower(siteorappversion) = 'site'
+)
+
+Select page_name, site_section, site_subsection, count(page_name) as page_views
+from adobe_base
+where site_section = 'virtuals'
+--where site_section NOT IN ('account', 'football', 'horse_racing')
+and site_subsection = 'uncategorised'
+group by page_name, site_section, site_subsection
+order by page_views desc
+limit 1000
