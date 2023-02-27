@@ -1,0 +1,43 @@
+with
+    cte_gaming_visits AS
+    (
+    Select dt, cust_id, MAX(1) AS gaming_visitor 
+    from sbg_summaries.onsite_data_summary_history
+    where feature IN ('vgs_visits', 'cas_visits', 'bng_visits') 
+    and cast(value as int) > 0
+    and DT >= DATE_SUB(TO_DATE(NOW()), 365)
+    GROUP BY
+    dt,
+    cust_id
+    )
+    ,
+    cte_bet_visits AS
+    (
+    Select dt, cust_id, MAX(1) AS bet_visitor
+    from sbg_summaries.onsite_data_summary_history
+    where feature = 'bet_visits'
+    and cast(value as int) > 0
+    and DT >= DATE_SUB(TO_DATE(NOW()), 365)
+    GROUP BY
+    dt,
+    cust_id
+    ),
+    
+    summary as (
+    SELECT
+    b.dt,
+    b.cust_id,
+    gaming_visitor,
+    nvl(bet_visitor,0) as bet_visitor
+    FROM
+    cte_bet_visits b
+    left join
+    cte_gaming_visits a on (a.cust_id=b.cust_id and a.dt=b.dt)
+    )
+    
+    Select dt, 
+    sum(gaming_visitor) as gaming_visitor
+    from summary
+    where dt >= '2023-01-01'
+    and bet_visitor = 1
+    group by dt
