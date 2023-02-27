@@ -1,0 +1,49 @@
+with
+    cte_gaming_activity AS
+    (
+        SELECT
+            dt,
+            cust_id,
+            MAX(1) AS gaming_active
+        FROM
+            betinsight.hibberds_gaming_daily_product_expected
+        WHERE
+            DT >= DATE_SUB(TO_DATE(NOW()), 365)
+        GROUP BY
+            dt,
+            cust_id
+    )
+    ,
+    cte_bet_activity AS
+    (
+        SELECT
+            dt,
+            cust_id,
+            MAX(1) AS bet_active
+        FROM
+            sbgi_sportsbook.bet_daily_sport_expected
+        WHERE
+            DT >= DATE_SUB(TO_DATE(NOW()), 365)
+        GROUP BY
+            dt,
+            cust_id
+    ),
+    
+    summary as (
+    SELECT
+    b.dt,
+    b.cust_id,
+    gaming_active,
+    nvl(bet_active,0) as bet_active
+    FROM
+    cte_bet_activity b
+    left join
+    cte_gaming_activity a on (a.cust_id=b.cust_id and a.dt=b.dt)
+    )
+        
+    Select dt, 
+    sum(gaming_active) as gaming_actives
+    from summary
+    where dt >= '2023-01-01'
+    and bet_active = 1
+    group by dt
