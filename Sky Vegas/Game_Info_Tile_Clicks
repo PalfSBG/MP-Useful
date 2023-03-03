@@ -1,0 +1,9 @@
+Select cust_id, page_name, click_event,
+case 
+when lower(click_event) like '%innertext:real play%' then 'real_play'
+when lower(click_event) like '%innertext:demo play%' then 'demo_play'
+end as play_type
+from sbgi_business_events.adobe_events a
+WHERE (lower(click_event) like '%innertext:real play%' OR lower(click_event) like '%innertext:demo play%')
+and concat(',',event_type,',') LIKE '%,20136,%' --Sky Vegas
+and dt = '2023-02-26'
