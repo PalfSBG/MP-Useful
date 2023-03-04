@@ -1,0 +1,58 @@
+WITH game_launchers as ( 
+Select dt, cust_id, MAX(1) AS game_launch 
+from sbg_summaries.onsite_data_summary_history
+where feature = 'vgs_game_launches'
+and cast(value as int) > 0
+and DT >= DATE_SUB(TO_DATE(NOW()), 365)
+GROUP BY dt, cust_id
+),  
+    
+cte_gaming_activity AS (
+SELECT dt, cust_id, MAX(1) AS gaming_active
+FROM betinsight.hibberds_gaming_daily_product_expected
+WHERE DT >= DATE_SUB(TO_DATE(NOW()), 365)
+GROUP BY dt, cust_id
+),
+
+joined as (
+Select g.dt as gl_dt, g.cust_id as gl_cust_id, game_launch, c.dt as act_dt, c.cust_id as act_cust_id, gaming_active 
+from game_launchers g
+full join cte_gaming_activity c
+on g.cust_id = c.cust_id
+and g.dt = c.dt
+),
+
+total_actives as (
+Select dt, sum(gaming_active) as total_actives
+from cte_gaming_activity
+group by dt
+),
+
+total_game_launchers as (
+Select dt, sum(game_launch) as total_game_launchers
+from game_launchers
+group by dt
+),
+
+active_no_game_launch as (
+Select act_dt, sum(gaming_active) as actives
+from joined
+where gl_dt IS NULL
+group by act_dt
+),
+
+game_launch_no_active as (
+Select gl_dt, sum(game_launch) as launchers
+from joined
+where act_dt IS NULL
+group by gl_dt
+)
+
+Select act_dt, total_actives, total_game_launchers, actives, launchers
+from active_no_game_launch
+left join game_launch_no_active 
+on act_dt = gl_dt
+left join total_game_launchers tg
+on act_dt = tg.dt
+left join total_actives ta
+on act_dt = ta.dt
