@@ -1,3 +1,5 @@
+--In theory every cust_id which is 'active' should also have a related game launch.
+
 WITH game_launchers as ( 
 Select dt, cust_id, MAX(1) AS game_launch 
 from sbg_summaries.onsite_data_summary_history
