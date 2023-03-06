@@ -1,0 +1,43 @@
+--Gets all customers who have deposited from the payments table and matches to all deposits we see from the behavioural data.
+--NOTE: Excludes Poker which may account for some shortfall
+
+WITH adobe as (
+Select dt, cust_id, cast(value as int) as deposits_placed 
+from sbg_summaries.onsite_data_summary_history
+where feature IN ('vgs_deposits', 'bng_deposits', 'csn_deposits', 'bet_deposits')
+and cast(value as int) > 0
+AND dt >= date_sub(date_trunc('day', now()), 31)
+),
+
+adobe_summary as (
+Select dt, cust_id, MAX(1) AS deposited
+from adobe
+group by dt, cust_id
+),
+
+deposits AS (
+SELECT to_date(aud_datetime) as dt, cust_ID, aud_datetime
+FROM sbgi_transactions.payment_detail
+WHERE payment_type = 'D'
+AND payment_status = 'Y'
+AND dt >= date_sub(date_trunc('day', now()), 31)
+AND year IN (year(now()), year(now())-1)
+),
+
+trans_summary as (
+Select dt, cust_id, max(1) as deposited
+from deposits
+group by dt, cust_id
+),
+
+summary as (
+Select td.dt, td.cust_id, td.deposited as payments_deposited, ad.deposited as adobe_deposited
+from trans_summary td
+left join adobe_summary ad
+on td.dt = ad.dt
+and td.cust_id = ad.cust_id
+)
+
+Select dt, sum(payments_deposited) as payment_table_deposits, sum(adobe_deposited) as adobe_deposits, sum(adobe_deposited) / sum(payments_deposited) as perc_matched  
+from summary
+group by dt
