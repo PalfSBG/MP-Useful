@@ -29,7 +29,12 @@ from gaminginsight.palfreemanm_gaming_gametile_clicks
 vegas_visit_summary as (
 Select 'vegas_visit_summary' as data_set, min(dt) as first_date, max(dt) as last_date
 from gaminginsight.palfreemanm_vegas_visit_summary
-)
+),
+
+bingo_session_summary as (
+Select 'bingo_session_summary' as data_set, min(dt) as first_date, max(dt) as last_date
+from gaminginsight.palfreemanm_bingo_session_summary
+),
 
 Select * from vegas_session_summary
 UNION
@@ -42,3 +47,5 @@ UNION
 Select * from gaming_gametile_clicks
 UNION
 Select * from vegas_visit_summary
+UNION
+Select * from bingo_session_summary
