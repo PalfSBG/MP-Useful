@@ -36,6 +36,45 @@ Select 'bingo_session_summary' as data_set, min(dt) as first_date, max(dt) as la
 from gaminginsight.palfreemanm_bingo_session_summary
 ),
 
+------------------------------------------------------------------------------------------------------------
+
+--Temp Table Coverage Checker
+
+vegas_session_summary_backup as (
+Select 'vegas_session_summary_backup' as data_set, min(dt) as first_date, max(dt) as last_date
+from gaminginsight.palfreemanm_vegas_session_summary_backup
+),
+
+basic_visit_summary_backup as (
+Select 'basic_visit_summary_backup' as data_set, min(dt) as first_date, max(dt) as last_date
+from gaminginsight.palfreemanm_visit_summary_basic_backup
+),
+
+bet_masthead_clicks_backup as (
+Select 'bet_masthead_clicks_backup' as data_set, min(dt) as first_date, max(dt) as last_date
+from gaminginsight.palfreemanm_bet_masthead_clicks_backup
+),
+
+gaming_hero_card_clicks_backup as (
+Select 'gaming_hero_card_clicks_backup' as data_set, min(dt) as first_date, max(dt) as last_date
+from gaminginsight.palfreemanm_gaming_hero_card_clicks_backup
+),
+
+gaming_gametile_clicks_backup as (
+Select 'gaming_hero_card_clicks_backup' as data_set, min(dt) as first_date, max(dt) as last_date
+from gaminginsight.palfreemanm_gaming_gametile_clicks_backup
+),
+
+vegas_visit_summary_backup as (
+Select 'vegas_visit_summary_backup' as data_set, min(dt) as first_date, max(dt) as last_date
+from gaminginsight.palfreemanm_vegas_visit_summary_backup
+),
+
+bingo_session_summary_backup as (
+Select 'bingo_session_summary_backup' as data_set, min(dt) as first_date, max(dt) as last_date
+from gaminginsight.palfreemanm_bingo_session_summary_backup
+),
+
 Select * from vegas_session_summary
 UNION
 Select * from basic_visit_summary
@@ -49,3 +88,18 @@ UNION
 Select * from vegas_visit_summary
 UNION
 Select * from bingo_session_summary
+-------------------------------------
+UNION
+Select * from vegas_session_summary_backup
+UNION
+Select * from basic_visit_summary_backup
+UNION
+Select * from bet_masthead_clicks_backup
+UNION
+Select * from gaming_hero_card_clicks_backup
+UNION
+Select * from gaming_gametile_clicks_backup
+UNION
+Select * from vegas_visit_summary_backup
+UNION
+Select * from bingo_session_summary_backup
