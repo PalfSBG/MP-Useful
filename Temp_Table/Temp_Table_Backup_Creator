@@ -1,0 +1,57 @@
+--Temp Table Backup Creator
+
+--Vegas Session Summary
+DROP TABLE IF EXISTS gaminginsight.palfreemanm_vegas_session_summary_backup;
+CREATE TABLE gaminginsight.palfreemanm_vegas_session_summary_backup
+PARTITIONED BY (dt)
+STORED AS PARQUET AS
+
+Select * from gaminginsight.palfreemanm_vegas_session_summary;
+
+--Basic Visit Summary
+DROP TABLE IF EXISTS gaminginsight.palfreemanm_visit_summary_basic_backup;
+CREATE TABLE gaminginsight.palfreemanm_visit_summary_basic_backup
+PARTITIONED BY (dt, yr)
+STORED AS PARQUET AS
+
+Select * from gaminginsight.palfreemanm_visit_summary_basic;
+
+--Bet Masthead Clicks
+DROP TABLE IF EXISTS gaminginsight.palfreemanm_bet_masthead_clicks_backup;
+CREATE TABLE gaminginsight.palfreemanm_bet_masthead_clicks_backup
+PARTITIONED BY (dt, yr)
+STORED AS PARQUET AS
+
+Select * from gaminginsight.palfreemanm_bet_masthead_clicks;
+
+--Gaming Hero Card Clicks
+DROP TABLE IF EXISTS gaminginsight.palfreemanm_gaming_hero_card_clicks_backup;
+CREATE TABLE gaminginsight.palfreemanm_gaming_hero_card_clicks_backup
+PARTITIONED BY (dt, yr)
+STORED AS PARQUET AS
+
+Select * from gaminginsight.palfreemanm_gaming_hero_card_clicks;
+
+--Gaming GameTile Clicks
+DROP TABLE IF EXISTS gaminginsight.palfreemanm_gaming_gametile_clicks_backup;
+CREATE TABLE gaminginsight.palfreemanm_gaming_gametile_clicks_backup
+PARTITIONED BY (dt, yr)
+STORED AS PARQUET AS
+
+Select * from gaminginsight.palfreemanm_gaming_gametile_clicks;
+
+--Vegas Visit Summary
+DROP TABLE IF EXISTS gaminginsight.palfreemanm_vegas_visit_summary_backup;
+CREATE TABLE gaminginsight.palfreemanm_vegas_visit_summary_backup
+PARTITIONED BY (dt, yr)
+STORED AS PARQUET AS
+
+Select * from gaminginsight.palfreemanm_vegas_visit_summary;
+
+--Bingo Session Summary
+DROP TABLE IF EXISTS gaminginsight.palfreemanm_bingo_session_summary_backup;
+CREATE TABLE gaminginsight.palfreemanm_bingo_session_summary_backup 
+PARTITIONED BY (dt, yr)
+STORED AS PARQUET AS
+
+Select * from gaminginsight.palfreemanm_bingo_session_summary
