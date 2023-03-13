@@ -1,0 +1,24 @@
+WITH adobe_base as (
+Select cust_id, page_name, click_event, event_date_time_gmt, dt
+from sbgi_business_events.adobe_events a
+WHERE concat(',',event_type,',') LIKE '%,20135,%' --Sky Bet
+and concat(',',event_type,',') like '%,230,%' --Add New Selection
+AND dt >= date_sub(date_trunc('day', now()), 2)
+and dt = '2023-03-12'
+),
+
+summary as (
+Select cust_id, page_name, 
+case 
+when locate('?', page_name) > 0 then split_part(replace(left(page_name, locate('?', page_name)), '?', ''), '/', 3) 
+when (page_name = '/mbet' OR page_name = '/native/mbet/home/live' OR split_part(page_name, '|', 2) = 'homepage') then 'home'
+when locate('|', page_name) > 0 then split_part(page_name, '|', 2)
+when page_name = '' then 'blank pagename'
+else split_part(page_name, '/', 3) end as sport,
+click_event, event_date_time_gmt, dt 
+from adobe_base
+)
+
+Select dt, sport, count(click_event) as selections_added
+from summary
+group by dt, sport
